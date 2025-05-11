@@ -4,191 +4,72 @@ This is a Go-based event generation and query benchmark tool for randomly writin
 
 ## Features
 
-- Periodic (every minute) generation of random events, with customizable intervals
-- Random generation of different types, severity levels, and statuses of events
-- Events contain rich metadata, reflecting real-world scenarios
-- Uses MongoDB native time types for timestamps, facilitating date operations and queries
-- Structured severity design for easy sorting and filtering
-- Concurrent writing to improve performance
+- Connect to your own MongoDB instance
 - Built-in various query tests with performance data analysis (execution time and memory usage)
-- Includes anti-pattern vs. optimized solution comparison tests, demonstrating MongoDB query optimization techniques
-- Uses compound indexes to optimize query performance
-
-## Project Structure
-
-The project adopts a modular design with the following structure:
-
-```
-├── cmd
-│   ├── generate     # Event generation subcommand
-│   └── run          # Benchmark test subcommand
-├── internal
-│   ├── database     # Database connection management
-│   ├── models       # Data model definitions
-│   └── utils        # Utility functions and query implementations
-├── main.go          # Main program entry
-├── go.mod           # Go module definition
-└── go.sum           # Dependency verification
-```
-
-## Event Structure
-
-Each event contains the following fields:
-
-- **timestamp**: Time of the event occurrence (native MongoDB time type)
-- **eventType**: Event type (such as "System Warning", "Security Incident", etc.)
-- **description**: Event description
-- **severity**: Event severity level, including numerical level, label, and color
-- **sourceSystem**: Source system
-- **sourceIP**: Source IP address
-- **affectedComponents**: List of affected components
-- **recommendation**: Handling recommendation
-- **status**: Event status
-- **assignedTo**: Team assigned to (if applicable)
-- **resolvedAt**: Resolution time (if applicable, native MongoDB time type)
-- **resolutionNotes**: Resolution notes (if applicable)
-- **tags**: List of tags
-- **metadata**: Additional metadata related to the event type
-
-## Prerequisites
-
-- Go 1.21 or higher
-- Running MongoDB instance (default at localhost:27017)
-
-## Installation and Building
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/mongo-bench.git
-cd mongo-bench
-```
-
-2. Fetch dependencies:
-
-```bash
-go mod tidy
-```
-
-3. Build the program:
-
-```bash
-go build -o mongo-bench
-```
-
-## Usage
-
-The program provides two main subcommands, which can be executed directly using `go run` or by building and running the binary:
-
-### 1. Generate Events
-
-```bash
-# Using go run
-go run main.go generate [flags]
-
-# Or using the built binary
-./mongo-bench generate [flags]
-```
-
-Optional parameters:
-- `--uri`: MongoDB connection URI (default: "mongodb://localhost:27017")
-- `--username`: MongoDB username (default: "admin")
-- `--password`: MongoDB password (default: "password")
-- `--database`: MongoDB database name (default: "eventstore")
-- `--interval`: Event generation interval in seconds (default: 60)
-
-### 2. Run Benchmarks
-
-```bash
-# Using go run
-go run main.go run [flags]
-
-# Or using the built binary
-./mongo-bench run [flags]
-```
-
-Optional parameters:
-- `--uri`: MongoDB connection URI (default: "mongodb://localhost:27017")
-- `--username`: MongoDB username (default: "admin")
-- `--password`: MongoDB password (default: "password")
-- `--database`: MongoDB database name (default: "eventstore")
-- `--test`: Specify the test name to run, leave empty to run all tests
-
-Available tests include:
-- Query recent events
-- Count by severity
-- Query high severity events
-- Query events within a time range
-- Query with index hint
-- Various anti-pattern and optimization solution comparison tests
+- Add your own tests inside the queries.go file!
 
 ## Example Usage
 
-1. Generate events with default configuration:
+1. Generate events:
 
 ```bash
-go run main.go generate
+go build .
+./mongo-bench generate
 ```
 
-2. Custom generation interval:
+2. Run all query tests:
 
 ```bash
-go run main.go generate --interval=30
+./mongo-bench run
 ```
 
-3. Run all query tests:
+3. Run a specific query test:
 
 ```bash
-go run main.go run
+./mongo-bench run --test="Query High Severity Events"
 ```
 
-4. Run a specific query test:
+## Example Result
 
-```bash
-go run main.go run --test="Query High Severity Events"
 ```
+Running all query benchmark tests...
+==================================================
 
-## MongoDB Query Optimization
+Running test: FindAllFieldsAntiPattern
+----------------------------------------
+Running anti-pattern: Querying all fields when only a few are needed
+Found 0 high severity events
+----------------------------------------
 
-This project demonstrates three common MongoDB query optimization techniques:
+Running test: FindWithProjectionOptimized
+----------------------------------------
+Running optimized solution: Using projection to return only needed fields
+Found 0 high severity events (projected fields)
+----------------------------------------
 
-### 1. Projection Optimization
+Running test: AggregateBeforeFilterAntiPattern
+----------------------------------------
+Running anti-pattern: Performing aggregations before filtering
+2025/05/11 11:54:48 Test failed: (BSONObjectTooLarge) BSON size limit hit while building Message. Size: 98217662 (0x5DAAEBE); maxSize: 16793600(16MB)
 
-Reduce network transfer and memory usage by retrieving only necessary fields.
+Running test: FilterBeforeAggregateOptimized
+----------------------------------------
+Running optimized solution: Filtering data before aggregation
+Found 1 severity groups with optimized aggregation
+----------------------------------------
 
-- **Anti-Pattern**: Retrieve entire documents but use only a few fields
-- **Optimization**: Use projection to retrieve only necessary fields
-
-### 2. Aggregation Pipeline Optimization
-
-Improve aggregation efficiency by optimizing the pipeline order.
-
-- **Anti-Pattern**: Aggregate first, then filter
-- **Optimization**: Filter first, then aggregate, reducing the number of documents to process
-
-### 3. Index Optimization
-
-Create indexes for commonly queried and sorted fields to accelerate query operations.
-
-- **Anti-Pattern**: Sort on unindexed fields
-- **Optimization**: Create indexes for sort fields and use index hints ($hint)
-
-> **Note**: In performance comparison tests, index creation is a one-time operation that is not included in query execution time. This is because in real applications, indexes are typically created in advance, not during each query.
-
-### Reliability Improvements for Performance Measurements
-
-To ensure the stability and reliability of test results, this tool implements the following optimizations:
-
-1. **Test Warm-up**: Performs warm-up queries before formal measurement to reduce the cache effect of the first query
-2. **Repeated Execution**: Executes each test multiple times and takes the average value to improve statistical significance
-3. **Memory Calculation Optimization**: Improves memory usage statistics algorithms to avoid unstable results caused by extremely small values
-4. **Detailed Logging**: Provides more detailed logs of the testing process and results for analyzing performance bottlenecks
-5. **Cache Flushing**: Actively flushes MongoDB cache before and between each test phase, including:
-   - Clearing the query plan cache (`planCacheClear` command)
-   - Executing multiple random queries with different patterns to flush the data cache
-   - Forcing garbage collection to release memory resources
-   These measures greatly reduce the interference of MongoDB's built-in caching mechanisms on test results
-
-## License
-
-MIT 
+Test Results Summary:
+==================================================
+Profile [FindAllFieldsAntiPattern]:
+- Execution time: 3.516625ms
+- Memory usage: 0.01 MB
+------------------------------
+Profile [FindWithProjectionOptimized]:
+- Execution time: 1.674125ms
+- Memory usage: 0.01 MB
+------------------------------
+Profile [FilterBeforeAggregateOptimized]:
+- Execution time: 903.701417ms
+- Memory usage: 0.02 MB
+------------------------------
+```
