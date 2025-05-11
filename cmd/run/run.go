@@ -73,12 +73,6 @@ func runBenchmarkCmd(cmd *cobra.Command, args []string) {
 		Collection: eventsCollection,
 	}
 
-	// Run optimization comparison tests
-	fmt.Println("Running MongoDB query optimization comparison tests...")
-	if err := utils.RunOptimizationComparison(queryContext); err != nil {
-		log.Fatalf("Failed to run optimization comparison tests: %v", err)
-	}
-
 	// Get all test functions
 	testPairs := utils.GetQueryTestPairs()
 

@@ -30,6 +30,10 @@ type QueryTestPair struct {
 // GetQueryTestPairs returns all query test pairs
 func GetQueryTestPairs() []QueryTestPair {
 	return []QueryTestPair{
+		{"FindAllFieldsAntiPattern", FindAllFieldsAntiPattern},
+		{"FindWithProjectionOptimized", FindWithProjectionOptimized},
+		{"AggregateBeforeFilterAntiPattern", AggregateBeforeFilterAntiPattern},
+		{"FilterBeforeAggregateOptimized", FilterBeforeAggregateOptimized},
 		{"FindRecentEvents", FindRecentEvents},
 		{"FindHighSeverityEvents", FindHighSeverityEvents},
 		{"AggregateEventsBySeverity", AggregateEventsBySeverity},
@@ -111,15 +115,15 @@ func FindWithProjectionOptimized(ctx *QueryContext) error {
 func AggregateBeforeFilterAntiPattern(ctx *QueryContext) error {
 	fmt.Println("Running anti-pattern: Performing aggregations before filtering")
 
-	// Aggregate all events by severity and then filter for high-severity events
 	pipeline := mongo.Pipeline{
 		{{"$group", bson.M{
-			"_id":    "$severity.level",
+			"_id": "$eventType",
+			// "_id":    "$severity.level",
 			"count":  bson.M{"$sum": 1},
 			"events": bson.M{"$push": "$$ROOT"},
 		}}},
 		{{"$match", bson.M{
-			"_id": bson.M{"$gte": 3},
+			"_id": bson.M{"$eq": "System Warning"},
 		}}},
 	}
 
@@ -142,13 +146,12 @@ func AggregateBeforeFilterAntiPattern(ctx *QueryContext) error {
 func FilterBeforeAggregateOptimized(ctx *QueryContext) error {
 	fmt.Println("Running optimized solution: Filtering data before aggregation")
 
-	// Filter for high-severity events first, then aggregate
 	pipeline := mongo.Pipeline{
 		{{"$match", bson.M{
-			"severity.level": bson.M{"$gte": 3},
+			"eventType": bson.M{"$eq": "System Warning"},
 		}}},
 		{{"$group", bson.M{
-			"_id":          "$severity.level",
+			"_id":          "$eventType",
 			"count":        bson.M{"$sum": 1},
 			"avgTimestamp": bson.M{"$avg": bson.M{"$toLong": "$timestamp"}},
 		}}},
@@ -166,61 +169,6 @@ func FilterBeforeAggregateOptimized(ctx *QueryContext) error {
 	}
 
 	fmt.Printf("Found %d severity groups with optimized aggregation\n", len(results))
-	return nil
-}
-
-// Pair 3: Index optimization
-// Anti-pattern: Sorting on unindexed fields
-func SortWithoutIndexAntiPattern(ctx *QueryContext) error {
-	fmt.Println("Running anti-pattern: Sorting on unindexed fields or without using indexes")
-
-	// Query with sort on a field without explicitly using an index
-	filter := bson.M{
-		"severity.level": bson.M{"$gte": 2},
-	}
-
-	opts := options.Find().SetSort(bson.M{"timestamp": -1})
-	cursor, err := ctx.Collection.Find(ctx.Ctx, filter, opts)
-	if err != nil {
-		return err
-	}
-	defer cursor.Close(ctx.Ctx)
-
-	var events []models.Event
-	if err = cursor.All(ctx.Ctx, &events); err != nil {
-		return err
-	}
-
-	fmt.Printf("Found %d events sorted by timestamp\n", len(events))
-	return nil
-}
-
-// Optimized solution: Create an index for sort fields and use $hint
-func SortWithIndexOptimized(ctx *QueryContext) error {
-	fmt.Println("Running optimized solution: Using indexes for sorting")
-
-	// Query with sort using a compound index
-	filter := bson.M{
-		"severity.level": bson.M{"$gte": 2},
-	}
-
-	// Use hint to explicitly select the index
-	opts := options.Find().
-		SetSort(bson.M{"severity.level": -1, "timestamp": -1}).
-		SetHint("compound_severity_idx")
-
-	cursor, err := ctx.Collection.Find(ctx.Ctx, filter, opts)
-	if err != nil {
-		return err
-	}
-	defer cursor.Close(ctx.Ctx)
-
-	var events []models.Event
-	if err = cursor.All(ctx.Ctx, &events); err != nil {
-		return err
-	}
-
-	fmt.Printf("Found %d events sorted by severity and timestamp using index\n", len(events))
 	return nil
 }
 

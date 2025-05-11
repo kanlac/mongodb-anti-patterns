@@ -18,11 +18,15 @@ const (
 
 // Index names
 const (
-	TimestampIndex        = "timestamp_idx"
-	EventTypeIndex        = "eventType_idx"
-	SeverityLevelIndex    = "severityLevel_idx"
-	StatusIndex           = "status_idx"
-	CompoundSeverityIndex = "compound_severity_idx"
+	// keep these indexes
+	Timestamp_EventType_SeverityLevel_Index = "timestamp_eventType_severityLevel"
+	Timestamp_SeverityLevel_Index           = "timestamp_severityLevel"
+
+	// TimestampIndex        = "timestamp_idx"
+	// EventTypeIndex        = "eventType_idx"
+	// SeverityLevelIndex    = "severity_level"
+	// StatusIndex           = "status_idx"
+	// CompoundSeverityIndex = "compound_severity_idx"
 )
 
 // MongoConfig represents MongoDB connection configuration
@@ -71,27 +75,19 @@ func CreateEventIndexes(ctx context.Context, collection *mongo.Collection) ([]st
 	// Create indexes for better query performance
 	indexes := []mongo.IndexModel{
 		{
-			Keys:    bson.D{{Key: "timestamp", Value: -1}},
-			Options: options.Index().SetName(TimestampIndex),
-		},
-		{
-			Keys:    bson.D{{Key: "eventType", Value: 1}},
-			Options: options.Index().SetName(EventTypeIndex),
-		},
-		{
-			Keys:    bson.D{{Key: "severity.level", Value: -1}},
-			Options: options.Index().SetName(SeverityLevelIndex),
-		},
-		{
-			Keys:    bson.D{{Key: "status", Value: 1}},
-			Options: options.Index().SetName(StatusIndex),
+			Keys: bson.D{
+				{Key: "timestamp", Value: -1},
+				{Key: "eventType", Value: -1},
+				{Key: "severity.level", Value: -1},
+			},
+			Options: options.Index().SetName(Timestamp_EventType_SeverityLevel_Index),
 		},
 		{
 			Keys: bson.D{
-				{Key: "severity.level", Value: -1},
 				{Key: "timestamp", Value: -1},
+				{Key: "severity.level", Value: -1},
 			},
-			Options: options.Index().SetName(CompoundSeverityIndex),
+			Options: options.Index().SetName(Timestamp_SeverityLevel_Index),
 		},
 	}
 

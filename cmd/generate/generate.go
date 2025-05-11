@@ -74,6 +74,11 @@ func generateCmd(cmd *cobra.Command, args []string) {
 	// Get events collection
 	eventsCollection := database.GetEventsCollection(client, config.Database)
 
+	_, err = database.CreateEventIndexes(ctx, eventsCollection)
+	if err != nil {
+		log.Fatalf("Failed to create indexes: %v", err)
+	}
+
 	// Log startup information
 	fmt.Printf("Connected to MongoDB: %s/%s\n", config.URI, config.Database)
 	fmt.Printf("Starting event generator with %d second interval\n", interval)

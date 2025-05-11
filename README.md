@@ -1,6 +1,6 @@
 # MongoDB Benchmark Tool
 
-This is a Go-based event generation and query benchmark tool for randomly writing event data to MongoDB databases and providing performance benchmarks. The program randomly generates 0-3 event records every minute and concurrently inserts them into the database, while offering various query functionalities for performance testing.
+This is a Go-based event generation and query benchmark tool for randomly writing event data to MongoDB databases and providing performance benchmarks. 
 
 ## Features
 
