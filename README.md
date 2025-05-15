@@ -1,32 +1,30 @@
-# MongoDB Benchmark Tool
-
-This is a Go-based event generation and query benchmark tool for randomly writing event data to MongoDB databases and providing performance benchmarks. 
+# MongoDB Anti-Patterns
 
 ## Features
 
-- Connect to your own MongoDB instance
 - Built-in various query tests with performance data analysis (execution time and memory usage)
 - Add your own tests inside the queries.go file!
 
-## Example Usage
-
-1. Generate events:
+## Basic Usage
 
 ```bash
 go build .
+# connect to your own MongoDB instance, and continuously write event data
 ./mongo-bench generate
-```
-
-2. Run all query tests:
-
-```bash
+# open a new shell, and run all test
 ./mongo-bench run
+# or run a specific test
+./mongo-bench run --test="Query High Severity Events"
 ```
 
-3. Run a specific query test:
+## Anti-Pattern 1: xxx
+
+xxx
+
+Test it:
 
 ```bash
-./mongo-bench run --test="Query High Severity Events"
+./mongo-bench run --test="FindAllFieldsAntiPattern" --test="FindWithProjectionOptimized"
 ```
 
 ## Example Result

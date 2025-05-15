@@ -117,7 +117,7 @@ func generateCmd(cmd *cobra.Command, args []string) {
 
 // Generate and insert events concurrently
 func generateAndInsertEvents(ctx context.Context, collection *mongo.Collection, concurrency int) {
-	eventCount := rand.Intn(4) // 0-3 events
+	eventCount := rand.Intn(10000) // todo: extract to config
 	if eventCount == 0 {
 		fmt.Println("No events generated in this interval")
 		return

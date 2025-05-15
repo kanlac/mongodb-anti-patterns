@@ -18,7 +18,7 @@ var (
 	mongoUsername string
 	mongoPassword string
 	mongoDatabase string
-	testName      string
+	testsName     []string
 )
 
 // NewRunCmd creates a run benchmark command
@@ -35,7 +35,7 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().StringVar(&mongoUsername, "username", "admin", "MongoDB username")
 	cmd.Flags().StringVar(&mongoPassword, "password", "password", "MongoDB password")
 	cmd.Flags().StringVar(&mongoDatabase, "database", "eventstore", "MongoDB database name")
-	cmd.Flags().StringVar(&testName, "test", "", "Specify test name to run, leave empty to run all tests")
+	cmd.Flags().StringSliceVar(&testsName, "test", []string{}, "Specify test name to run")
 
 	return cmd
 }
@@ -76,37 +76,28 @@ func runBenchmarkCmd(cmd *cobra.Command, args []string) {
 	// Get all test functions
 	testPairs := utils.GetQueryTestPairs()
 
-	// If a specific test is specified, only run that test
-	if testName != "" {
-		var foundTest bool
-		for _, pair := range testPairs {
-			if pair.Name == testName {
-				foundTest = true
-				fmt.Printf("Running test: %s\n", pair.Name)
-				fmt.Println(strings.Repeat("-", 40))
+	// If specific tests are specified, only run these tests
+	var selectedTests []utils.QueryTestPair
+	if len(testsName) > 0 {
+		testMap := make(map[string]bool)
+		for _, name := range testsName {
+			testMap[name] = true
+		}
 
-				// Execute test and analyze performance
-				result, err := utils.ProfileFunc(pair.Name, func() error {
-					return pair.TestFunc(queryContext)
-				})
-				if err != nil {
-					log.Printf("Test failed: %v", err)
-				} else {
-					fmt.Println(strings.Repeat("-", 40))
-					fmt.Println(result.String())
-				}
-				break
+		for _, pair := range testPairs {
+			if testMap[pair.Name] {
+				selectedTests = append(selectedTests, pair)
 			}
 		}
 
-		if !foundTest {
-			log.Fatalf("Test not found: %s", testName)
+		if len(selectedTests) == 0 {
+			log.Fatalf("No matching tests found for the specified test names")
 		}
-		return
+		testPairs = selectedTests
 	}
 
 	// Run all tests
-	fmt.Println("\nRunning all query benchmark tests...")
+	fmt.Println("\nRunning query benchmark tests...")
 	fmt.Println(strings.Repeat("=", 50))
 
 	// Record all test results
